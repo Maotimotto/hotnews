@@ -274,7 +274,7 @@
 
         async function loadProfiles() {
             try {
-                const resp = await fetch('/api/profiles');
+                const resp = await fetch('api/profiles');
                 if (resp.ok) {
                     profiles = await resp.json();
                     renderProfileSelect();
@@ -309,7 +309,7 @@
 
         async function loadMarkdown() {
             try {
-                const resp = await fetch('/api/markdown?t=' + Date.now());
+                const resp = await fetch('api/markdown?t=' + Date.now());
                 if (resp.ok) {
                     const html = await resp.text();
                     if (html.trim()) {
@@ -336,7 +336,7 @@
             startProgressAnimation(btn, 85);
 
             try {
-                const resp = await fetch('/api/run', {
+                const resp = await fetch('api/run', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ profile: profileText, persona_name: personaName }),
@@ -435,13 +435,13 @@
                 let resp;
                 if (editMode) {
                     body.id = document.getElementById('modalProfileId').value;
-                    resp = await fetch('/api/profiles', {
+                    resp = await fetch('api/profiles', {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(body),
                     });
                 } else {
-                    resp = await fetch('/api/profiles', {
+                    resp = await fetch('api/profiles', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(body),
@@ -473,7 +473,7 @@
                 return;
             }
             try {
-                const resp = await fetch('/api/profiles', {
+                const resp = await fetch('api/profiles', {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id: selected.id }),
@@ -496,7 +496,7 @@
 
         async function exportReport() {
             try {
-                const resp = await fetch('/api/export?t=' + Date.now());
+                const resp = await fetch('api/export?t=' + Date.now());
                 if (!resp.ok) {
                     alert('导出失败：暂无报告内容');
                     return;
@@ -518,7 +518,7 @@
 
         async function exportRecommendations() {
             try {
-                const resp = await fetch('/api/export-recommendations?t=' + Date.now());
+                const resp = await fetch('api/export-recommendations?t=' + Date.now());
                 if (!resp.ok) {
                     alert('导出失败：暂无推荐内容');
                     return;
