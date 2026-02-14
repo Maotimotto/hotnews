@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贵金属新闻日报</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            flex-wrap: wrap;
+        }
+        .toolbar select {
+            flex: 1;
+            max-width: 480px;
+            padding: 8px 14px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            background: #fff;
+        }
+        .toolbar select:focus { border-color: #4a90d9; }
+        .toolbar button {
+            padding: 8px 20px;
+            background: #4a90d9;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s;
+            position: relative;
+        }
+        .toolbar button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background: inherit;
+            transition: width 0.3s ease;
+            z-index: 0;
+        }
+        .toolbar button.progress-active {
+            background: #aaa;
+        }
+        .toolbar button.progress-active::before {
+            background: #4a90d9;
+            width: var(--progress, 0%);
+            transition: width 0.3s ease;
+        }
+        .toolbar button span {
+            position: relative;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .toolbar button:hover { background: #357abd; }
+        .toolbar button:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+
+        /* Tooltip styles */
+        .tooltip {
+            position: relative;
+        }
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(8px);
+            background: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+        .tooltip:hover::after {
+            opacity: 1;
+            transition-delay: 1s;
+        }
+        .toolbar .btn-add { background: #2ea44f; }
+        .toolbar .btn-add:hover { background: #26903f; }
+        .toolbar .btn-edit { background: #e08a00; }
+        .toolbar .btn-edit:hover { background: #c77a00; }
+        .toolbar .btn-delete { background: #d73a49; }
+        .toolbar .btn-delete:hover { background: #bf2a38; }
+        .toolbar .btn-export { background: #6f42c1; }
+        .toolbar .btn-export:hover { background: #5a32a3; }
+        .status {
+            font-size: 13px;
+            color: #888;
+            min-width: 80px;
+        }
+        .status.running { color: #e08a00; }
+        .status.done { color: #2ea44f; }
+        .status.error { color: #d73a49; }
+        .content {
+            max-width: 960px;
+            margin: 24px auto;
+            padding: 24px 32px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+            line-height: 1.7;
+        }
+        .content h1 { font-size: 24px; margin-bottom: 8px; color: #222; }
+        .content h2 { font-size: 20px; margin: 24px 0 12px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+        .content h3 { font-size: 17px; margin: 18px 0 8px; color: #444; }
+        .content blockquote {
+            border-left: 3px solid #4a90d9;
+            padding: 4px 12px;
+            margin: 8px 0;
+            color: #666;
+            background: #f8f9fa;
+            border-radius: 0 4px 4px 0;
+        }
+        .content table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+        .content th, .content td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; }
+        .content th { background: #f0f4f8; font-weight: 600; }
+        .content tr:hover { background: #fafbfc; }
+        .content a { color: #4a90d9; text-decoration: none; }
+        .content a:hover { text-decoration: underline; }
+        .content ul { padding-left: 20px; }
+        .content li { margin: 2px 0; }
+        .content hr { border: none; border-top: 1px solid #eee; margin: 20px 0; }
+        .content code { background: #f0f0f0; padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+        .content pre { background: #f6f8fa; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 13px; }
+        .content pre code { background: none; padding: 0; }
+        .content strong { color: #222; }
+        .empty-hint {
+            text-align: center;
+            color: #aaa;
+            padding: 60px 0;
+            font-size: 16px;
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #fff;
+            border-radius: 10px;
+            padding: 28px 32px;
+            width: 460px;
+            max-width: 90vw;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+        }
+        .modal h3 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #222;
+        }
+        .modal label {
+            display: block;
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 4px;
+            margin-top: 14px;
+        }
+        .modal label:first-of-type { margin-top: 0; }
+        .modal input, .modal textarea, .modal select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            font-family: inherit;
+        }
+        .modal input:focus, .modal textarea:focus, .modal select:focus { border-color: #4a90d9; }
+        .modal textarea { resize: vertical; min-height: 80px; }
+        .modal-actions {
+            margin-top: 24px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .modal-actions button {
+            padding: 8px 22px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .modal-actions .btn-confirm {
+            background: #4a90d9;
+            color: #fff;
+        }
+        .modal-actions .btn-confirm:hover { background: #357abd; }
+        .modal-actions .btn-cancel {
+            background: #e8e8e8;
+            color: #333;
+        }
+        .modal-actions .btn-cancel:hover { background: #d0d0d0; }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <select id="profileSelect" class="tooltip" data-tooltip="选择一个达人画像，用于生成个性化推荐内容">
+            <option value="">-- 请选择达人画像 --</option>
+        </select>
+        <button id="runBtn" class="tooltip" data-tooltip="从各大平台抓取最新新闻并生成日报" onclick="runScraper()"><span>抓取并生成报告</span></button>
+        <button class="btn-add tooltip" data-tooltip="创建新的达人画像配置" onclick="openAddModal()">新增达人画像</button>
+        <button class="btn-edit tooltip" data-tooltip="编辑当前选中的达人画像信息" onclick="openEditModal()">修改画像</button>
+        <button class="btn-delete tooltip" data-tooltip="删除当前选中的达人画像" onclick="deleteProfile()">删除画像</button>
+        <button class="btn-export tooltip" data-tooltip="将新闻榜单导出为 Markdown 文件" onclick="exportReport()">导出榜单</button>
+        <button class="btn-export tooltip" data-tooltip="将推荐内容导出为 Markdown 文件" onclick="exportRecommendations()">导出推荐</button>
+        <span class="status" id="statusText"></span>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h3 id="modalTitle">新增达人画像</h3>
+            <input type="hidden" id="modalProfileId" value="" />
+            <label for="modalName">达人名称</label>
+            <input type="text" id="modalName" placeholder="例如：张三" />
+            <label for="modalProfile">达人画像</label>
+            <textarea id="modalProfile" placeholder="例如：关注黄金投资的保守型投资者，喜欢分析宏观经济..."></textarea>
+            <div class="modal-actions">
+                <button class="btn-cancel tooltip" data-tooltip="取消操作并关闭弹窗" onclick="closeModal()">取消</button>
+                <button class="btn-confirm tooltip" data-tooltip="保存达人画像信息" id="modalConfirmBtn" onclick="submitProfile()">确定新增</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="content" id="mdContent">
+        <div class="empty-hint">点击「抓取并生成报告」开始获取新闻</div>
+    </div>
+
+    <script>
+        let profiles = [];
+        let editMode = false;
+        let progressInterval = null;
+
+        // Initialize
+        loadProfiles();
+        loadMarkdown();
+
+        async function loadProfiles() {
+            try {
+                const resp = await fetch('/api/profiles');
+                if (resp.ok) {
+                    profiles = await resp.json();
+                    renderProfileSelect();
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        function renderProfileSelect() {
+            const sel = document.getElementById('profileSelect');
+            const currentVal = sel.value;
+            sel.innerHTML = '<option value="">-- 请选择达人画像 --</option>';
+            profiles.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.name;
+                sel.appendChild(opt);
+            });
+            // Restore selection if still exists
+            if (currentVal && profiles.some(p => p.id === currentVal)) {
+                sel.value = currentVal;
+            }
+        }
+
+        function getSelectedProfile() {
+            const sel = document.getElementById('profileSelect');
+            const pid = sel.value;
+            if (!pid) return null;
+            return profiles.find(p => p.id === pid) || null;
+        }
+
+        async function loadMarkdown() {
+            try {
+                const resp = await fetch('/api/markdown?t=' + Date.now());
+                if (resp.ok) {
+                    const html = await resp.text();
+                    if (html.trim()) {
+                        document.getElementById('mdContent').innerHTML = html;
+                    }
+                }
+            } catch (e) {
+                // ignore, keep empty hint
+            }
+        }
+
+        async function runScraper() {
+            const btn = document.getElementById('runBtn');
+            const status = document.getElementById('statusText');
+            const selected = getSelectedProfile();
+            const profileText = selected ? selected.profile : '';
+            const personaName = selected ? selected.name : '';
+
+            btn.disabled = true;
+            status.className = 'status running';
+            status.textContent = '正在抓取...';
+
+            // Start progress animation (85 seconds)
+            startProgressAnimation(btn, 85);
+
+            try {
+                const resp = await fetch('/api/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ profile: profileText, persona_name: personaName }),
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    status.className = 'status done';
+                    status.textContent = '完成!';
+                    await loadMarkdown();
+                } else {
+                    status.className = 'status error';
+                    status.textContent = '失败: ' + (data.error || '未知错误');
+                }
+            } catch (e) {
+                status.className = 'status error';
+                status.textContent = '请求失败: ' + e.message;
+            } finally {
+                btn.disabled = false;
+                stopProgress(btn);
+            }
+        }
+
+        function startProgressAnimation(btn, totalSeconds) {
+            btn.classList.add('progress-active');
+            btn.style.setProperty('--progress', '0%');
+
+            let elapsed = 0;
+            const interval = 100; // Update every 100ms
+            const totalMs = totalSeconds * 1000;
+
+            progressInterval = setInterval(() => {
+                elapsed += interval;
+                const progress = Math.min((elapsed / totalMs) * 100, 100);
+                btn.style.setProperty('--progress', progress + '%');
+
+                if (elapsed >= totalMs) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
+            }, interval);
+        }
+
+        function stopProgress(btn) {
+            if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+            }
+            // Complete the progress bar immediately
+            btn.style.setProperty('--progress', '100%');
+            setTimeout(() => {
+                btn.classList.remove('progress-active');
+                btn.style.setProperty('--progress', '0%');
+            }, 300);
+        }
+
+        // Modal operations
+        function openAddModal() {
+            editMode = false;
+            document.getElementById('modalTitle').textContent = '新增达人画像';
+            document.getElementById('modalConfirmBtn').textContent = '确定新增';
+            document.getElementById('modalProfileId').value = '';
+            document.getElementById('modalName').value = '';
+            document.getElementById('modalProfile').value = '';
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function openEditModal() {
+            const selected = getSelectedProfile();
+            if (!selected) {
+                alert('请先选择一个达人画像');
+                return;
+            }
+            editMode = true;
+            document.getElementById('modalTitle').textContent = '修改达人画像';
+            document.getElementById('modalConfirmBtn').textContent = '确定修改';
+            document.getElementById('modalProfileId').value = selected.id;
+            document.getElementById('modalName').value = selected.name;
+            document.getElementById('modalProfile').value = selected.profile;
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        async function submitProfile() {
+            const name = document.getElementById('modalName').value.trim();
+            const profile = document.getElementById('modalProfile').value.trim();
+
+            if (!name) { alert('请输入达人名称'); return; }
+            if (!profile) { alert('请输入达人画像'); return; }
+
+            const body = { name, platform: '', profile };
+
+            try {
+                let resp;
+                if (editMode) {
+                    body.id = document.getElementById('modalProfileId').value;
+                    resp = await fetch('/api/profiles', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body),
+                    });
+                } else {
+                    resp = await fetch('/api/profiles', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body),
+                    });
+                }
+                const data = await resp.json();
+                if (data.success) {
+                    closeModal();
+                    await loadProfiles();
+                    // Auto-select the new/updated profile
+                    if (data.profile) {
+                        document.getElementById('profileSelect').value = data.profile.id;
+                    }
+                } else {
+                    alert('操作失败: ' + (data.error || '未知错误'));
+                }
+            } catch (e) {
+                alert('请求失败: ' + e.message);
+            }
+        }
+
+        async function deleteProfile() {
+            const selected = getSelectedProfile();
+            if (!selected) {
+                alert('请先选择一个达人画像');
+                return;
+            }
+            if (!confirm('确定要删除「' + selected.name + '」的画像吗？')) {
+                return;
+            }
+            try {
+                const resp = await fetch('/api/profiles', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: selected.id }),
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    await loadProfiles();
+                } else {
+                    alert('删除失败: ' + (data.error || '未知错误'));
+                }
+            } catch (e) {
+                alert('请求失败: ' + e.message);
+            }
+        }
+
+        // Close modal on overlay click
+        document.getElementById('modalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        async function exportReport() {
+            try {
+                const resp = await fetch('/api/export?t=' + Date.now());
+                if (!resp.ok) {
+                    alert('导出失败：暂无报告内容');
+                    return;
+                }
+                const blob = await resp.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const today = new Date().toISOString().slice(0, 10);
+                a.download = '新闻榜单_' + today + '.md';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                alert('导出失败: ' + e.message);
+            }
+        }
+
+        async function exportRecommendations() {
+            try {
+                const resp = await fetch('/api/export-recommendations?t=' + Date.now());
+                if (!resp.ok) {
+                    alert('导出失败：暂无推荐内容');
+                    return;
+                }
+                const blob = await resp.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const today = new Date().toISOString().slice(0, 10);
+                a.download = '推荐榜单_' + today + '.md';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                alert('导出失败: ' + e.message);
+            }
+        }
+    </script>
+</body>
+</html>

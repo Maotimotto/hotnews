@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .toolbar button {
+            padding: 8px 20px;
+            background: #4a90d9;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .toolbar button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background: inherit;
+            transition: width 0.3s ease;
+            z-index: 0;
+        }
+        .toolbar button.progress-active {
+            background: #aaa;
+        }
+        .toolbar button.progress-active::before {
+            background: #4a90d9;
+            width: var(--progress, 0%);
+        }
+        .toolbar button span {
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <button id="testBtn"><span>测试按钮</span></button>
+    </div>
+    <script>
+        const btn = document.getElementById('testBtn');
+        btn.addEventListener('click', () => {
+            btn.classList.add('progress-active');
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                btn.style.setProperty('--progress', progress + '%');
+                console.log('Progress:', progress + '%');
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        btn.classList.remove('progress-active');
+                        btn.style.setProperty('--progress', '0%');
+                    }, 1000);
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>

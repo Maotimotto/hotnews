@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tooltip测试</title>
+    <style>
+        body {
+            padding: 50px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .tooltip {
+            position: relative;
+        }
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(8px);
+            background: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+        .tooltip:hover::after {
+            opacity: 1;
+            transition-delay: 1s;
+        }
+        button {
+            padding: 8px 20px;
+            background: #4a90d9;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button span {
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <h2>Tooltip测试页面</h2>
+    <p>将鼠标悬停在按钮上超过1秒，应该会显示提示文字</p>
+
+    <div>
+        <button class="tooltip" data-tooltip="这是一个普通按钮的提示">普通按钮</button>
+        <button class="tooltip" data-tooltip="这是带span的按钮提示"><span>带span的按钮</span></button>
+    </div>
+</body>
+</html>

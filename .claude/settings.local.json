@@ -1,0 +1,7 @@
+{
+  "permissions": {"allow": ["Bash(tree:*)", "Bash(python3:*)"]},
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://www.cpass.cc",
+    "ANTHROPIC_AUTH_TOKEN": "sk-UbSbVxTvAYlRIREe0kMxzfO15Hekb9iVkB8cNApngAgVa2aF"
+  }
+}
