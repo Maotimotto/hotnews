@@ -235,6 +235,9 @@
             <option value="">-- 请选择达人画像 --</option>
         </select>
         <button id="runBtn" class="tooltip" data-tooltip="从各大平台抓取最新新闻并生成日报" onclick="runScraper()"><span>抓取并生成报告</span></button>
+        <select id="personaSelect" class="tooltip" data-tooltip="切换查看不同达人的推荐内容" onchange="switchPersona()">
+            <option value="">-- 查看全部文章 --</option>
+        </select>
         <button class="btn-add tooltip" data-tooltip="创建新的达人画像配置" onclick="openAddModal()">新增达人画像</button>
         <button class="btn-edit tooltip" data-tooltip="编辑当前选中的达人画像信息" onclick="openEditModal()">修改画像</button>
         <button class="btn-delete tooltip" data-tooltip="删除当前选中的达人画像" onclick="deleteProfile()">删除画像</button>
@@ -267,9 +270,11 @@
         let profiles = [];
         let editMode = false;
         let progressInterval = null;
+        let currentPersona = '';
 
         // Initialize
         loadProfiles();
+        loadPersonas();
         loadMarkdown();
 
         async function loadProfiles() {
@@ -307,9 +312,46 @@
             return profiles.find(p => p.id === pid) || null;
         }
 
+        async function loadPersonas() {
+            try {
+                const resp = await fetch('api/personas');
+                if (resp.ok) {
+                    const personas = await resp.json();
+                    renderPersonaSelect(personas);
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        function renderPersonaSelect(personas) {
+            const sel = document.getElementById('personaSelect');
+            sel.innerHTML = '<option value="">-- 查看全部文章 --</option>';
+            personas.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.name;
+                opt.textContent = p.name + ' 的推荐';
+                sel.appendChild(opt);
+            });
+            // Restore selection
+            if (currentPersona && personas.some(p => p.name === currentPersona)) {
+                sel.value = currentPersona;
+            }
+        }
+
+        function switchPersona() {
+            const sel = document.getElementById('personaSelect');
+            currentPersona = sel.value;
+            loadMarkdown();
+        }
+
         async function loadMarkdown() {
             try {
-                const resp = await fetch('api/markdown?t=' + Date.now());
+                let url = 'api/markdown?t=' + Date.now();
+                if (currentPersona) {
+                    url += '&persona=' + encodeURIComponent(currentPersona);
+                }
+                const resp = await fetch(url);
                 if (resp.ok) {
                     const html = await resp.text();
                     if (html.trim()) {
@@ -345,6 +387,7 @@
                 if (data.success) {
                     status.className = 'status done';
                     status.textContent = '完成!';
+                    await loadPersonas();
                     await loadMarkdown();
                 } else {
                     status.className = 'status error';
@@ -517,8 +560,12 @@
         }
 
         async function exportRecommendations() {
+            if (!currentPersona) {
+                alert('请先选择一个达人查看推荐内容');
+                return;
+            }
             try {
-                const resp = await fetch('api/export-recommendations?t=' + Date.now());
+                const resp = await fetch('api/export-recommendations?persona=' + encodeURIComponent(currentPersona) + '&t=' + Date.now());
                 if (!resp.ok) {
                     alert('导出失败：暂无推荐内容');
                     return;
@@ -528,7 +575,7 @@
                 const a = document.createElement('a');
                 a.href = url;
                 const today = new Date().toISOString().slice(0, 10);
-                a.download = '推荐榜单_' + today + '.md';
+                a.download = '推荐榜单_' + currentPersona + '_' + today + '.md';
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
